@@ -1,0 +1,7 @@
+name: in-class
+depend: standard-library
+include: .
+flags:
+   --safe
+   --keep-pattern-variables
+   --no-postfix-projections
