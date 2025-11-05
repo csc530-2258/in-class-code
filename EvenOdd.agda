@@ -3,9 +3,6 @@ module EvenOdd where
 -- This is the proof that all natural numbers are even or odd but now
 -- in Agda!  It may look a little simpler than it did in Pie.
 
--- NOTE: We haven't learned several of these things in class yet, but
--- we will!
-
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (+-suc)
 open import Data.Product using (∃-syntax; _,_)
