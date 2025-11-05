@@ -1,4 +1,4 @@
-module logic where
+module Intro.Logic where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality

@@ -1,4 +1,4 @@
-module intro where
+module Intro.Naturals where
 
 -- Some unicode used below
 -- ∀ : \all
