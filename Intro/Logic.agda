@@ -5,16 +5,16 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl)
 
 -- Some unicode:
--- ₁: \_1
--- ₂: \_2
--- ×: \times  or  \x
--- ⊎: \u+
--- ⊥: \bot
--- ¬: \neg
--- Σ: \GS  or  \Sigma
--- ∃: \ex  or \exists
--- ′: \' (this isn't super necessary, but technically I'm using the
---        unicode character for "prime")
+-- ₁ : \_1
+-- ₂ : \_2
+-- × : \times  or  \x
+-- ⊎ : \u+
+-- ⊥ : \bot
+-- ¬ : \neg
+-- Σ : \GS  or  \Sigma
+-- ∃ : \ex  or \exists
+-- ′ : \' (this isn't super necessary, but technically I'm using the
+--         unicode character for "prime")
 
 -- It's our and!
 infixr 2 _×_
