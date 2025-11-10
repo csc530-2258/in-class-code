@@ -1,6 +1,12 @@
 module NatBool.Examples where
 
 open import NatBool.Language
+open import NatBool.Properties
+
+open import Data.Empty using (⊥)
+open import Data.Product using (_×_; _,_)
+open import Relation.Nullary using (¬_)
+
 
 three : Term
 three = `suc (`suc (`suc `zero))
@@ -19,3 +25,22 @@ program3 = `suc `true
 
 three-is-val : Value three
 three-is-val = V-nat (NV-suc (NV-suc (NV-suc NV-zero)))
+
+two-is-natval : NatValue (`suc (`suc `zero))
+two-is-natval = NV-suc (NV-suc NV-zero)
+
+prog3-not-val : ¬ (Value program3)
+prog3-not-val (V-bool ())
+prog3-not-val (V-nat (NV-suc ()))
+
+p1-step : program1 —→ three
+p1-step = if-true
+
+p2-step : program2 —→ `if `false three five
+p2-step = reduce-if (zero?-suc two-is-natval)
+
+p3-no-step : ∀ {t} → ¬ (program3 —→ t)
+p3-no-step (reduce-suc ())
+
+p3-stuck : Stuck program3
+p3-stuck = p3-no-step , prog3-not-val
