@@ -44,3 +44,18 @@ p3-no-step (reduce-suc ())
 
 p3-stuck : Stuck program3
 p3-stuck = p3-no-step , prog3-not-val
+
+p2-steps : program2 —→* five
+p2-steps = multi-steps (reduce-if (zero?-suc two-is-natval))
+                       (multi-steps if-false no-steps)
+
+three-is-nat : ⊢ three ⦂ Nat
+three-is-nat = ⊢suc (⊢suc (⊢suc ⊢zero))
+
+p2-is-nat : ⊢ program2 ⦂ Nat
+p2-is-nat = ⊢if (⊢zero? three-is-nat)
+                three-is-nat
+                (⊢suc (⊢suc three-is-nat))
+
+p3-has-no-type : ∀ {T : Type} → ¬ (⊢ program3 ⦂ T)
+p3-has-no-type (⊢suc ())

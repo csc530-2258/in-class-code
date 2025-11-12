@@ -45,3 +45,26 @@ data _—→*_ : Term → Term → Set where
   multi-steps : ∀ {t t₁ t₂} →
                 t —→ t₁ → t₁ —→* t₂ →
                 t —→* t₂
+
+
+data Type : Set where
+  Nat  : Type
+  Bool : Type
+
+
+-- ⊢ : \vdash , \|-
+-- ⦂ : \z:
+infix 4 ⊢_⦂_
+data ⊢_⦂_ : Term → Type → Set where
+  ⊢true  : ⊢ `true ⦂ Bool
+  ⊢false : ⊢ `false ⦂ Bool
+  ⊢if    : ∀ {c th el A} →
+           ⊢ c ⦂ Bool → ⊢ th ⦂ A → ⊢ el ⦂ A →
+           ⊢ `if c th el ⦂ A
+  ⊢zero  : ⊢ `zero ⦂ Nat
+  ⊢suc   : ∀ {n} →
+           ⊢ n ⦂ Nat →
+           ⊢ `suc n ⦂ Nat
+  ⊢zero? : ∀ {n} →
+           ⊢ n ⦂ Nat →
+           ⊢ `zero? n ⦂ Bool
