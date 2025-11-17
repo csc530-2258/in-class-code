@@ -2,10 +2,12 @@ module NatBool.Properties where
 
 open import NatBool.Language
 
-open import Data.Product using (_×_)
+open import Data.Empty using (⊥)
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong)
-open import Relation.Nullary using (¬_)
+open import Relation.Nullary using (¬_; Dec; yes; no)
 
 Normal : Term → Set
 Normal t = ∀ {t′} → ¬ (t —→ t′)
@@ -56,7 +58,7 @@ progress ⊢zero  = done (V-nat NV-zero)
 progress (⊢suc n-nat) with progress n-nat
 ... | step n-step = step (reduce-suc n-step)
 ... | done n-val  = done (V-nat (NV-suc (nat-vals n-val n-nat)))
-progress (⊢if c-bool th-T el-T) with progress c-bool
+progress (⊢if c-bool _ _) with progress c-bool
 ... | step c-step = step (reduce-if c-step)
 ... | done c-val with bool-vals c-val c-bool
 ...   | BV-true  = step if-true
@@ -66,3 +68,50 @@ progress (⊢zero? n-nat) with progress n-nat
 ... | done n-val with nat-vals n-val n-nat
 ...   | NV-zero      = step zero?-zero
 ...   | NV-suc pn-nv = step (zero?-suc pn-nv)
+
+
+preserve : ∀ {t t′ T} → ⊢ t ⦂ T → t —→ t′ → ⊢ t′ ⦂ T
+preserve (⊢if _ th-T _)         if-true  = th-T
+preserve (⊢if _ _ el-T)         if-false = el-T
+preserve (⊢if c-bool th-T el-T) (reduce-if c-step) =
+  ⊢if (preserve c-bool c-step) th-T el-T
+preserve (⊢suc n-nat)           (reduce-suc n-step) =
+  ⊢suc (preserve n-nat n-step)
+preserve (⊢zero? _)     zero?-zero            = ⊢true
+preserve (⊢zero? _)     (zero?-suc _)         = ⊢false
+preserve (⊢zero? n-nat) (reduce-zero? n-step) =
+  ⊢zero? (preserve n-nat n-step)
+
+
+unstuck : ∀ {t T} → ⊢ t ⦂ T → ¬ (Stuck t)
+unstuck t-T (t-normal , t-not-value) with progress t-T
+... | done t-value = t-not-value t-value
+... | step t-step  = t-normal t-step
+
+
+preserves : ∀ {t t′ T} → ⊢ t ⦂ T → t —→* t′ → ⊢ t′ ⦂ T
+preserves t-T no-steps = t-T
+preserves t-T (multi-steps fst-step rst-steps) =
+  preserves (preserve t-T fst-step) rst-steps
+
+
+wttdgs : ∀ {t t′ T} → ⊢ t ⦂ T → t —→* t′ → ¬ (Stuck t′)
+wttdgs t-T t-steps = unstuck (preserves t-T t-steps)
+
+
+data Finished (t : Term) : Set where
+  ran       : Value t → Finished t
+  timed-out : Finished t
+
+
+data Steps (t : Term) : Set where
+  steps : ∀ {t′ : Term} → t —→* t′ → Finished t′ → Steps t
+
+
+eval : ∀ {t T} → ℕ → ⊢ t ⦂ T → Steps t
+eval zero    _   = steps no-steps timed-out
+eval (suc n) t-T with progress t-T
+... | done t-value = steps no-steps (ran t-value)
+... | step t-step  with eval n (preserve t-T t-step)
+...   | steps rst-steps fin =
+  steps (multi-steps t-step rst-steps) fin
