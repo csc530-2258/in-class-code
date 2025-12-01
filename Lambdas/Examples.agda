@@ -1,6 +1,8 @@
 module Lambdas.Examples where
 
 open import Lambdas.Language
+open import Relation.Binary.PropositionalEquality
+  using (_≢_)
 
 three : Term
 three = `suc (`suc (`suc `zero))
@@ -32,3 +34,9 @@ _ = begin
   —→⟨ if-false ⟩
     five
   ∎
+
+_ : "z" ⦂ Nat ∈ (∅ , "x" ⦂ Nat ⇒ Nat , "y" ⦂ Bool , "z" ⦂ Nat)
+_ = here
+
+_ : "x" ⦂ Nat ⇒ Nat ∈ (∅ , "x" ⦂ Nat ⇒ Nat , "y" ⦂ Bool , "z" ⦂ Nat)
+_ = there (λ ()) (there (λ ()) here)

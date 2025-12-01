@@ -44,8 +44,8 @@ data LamValue : Term → Set where
 
 data Value : Term → Set where
   V-bool : ∀ {t} → BoolValue t → Value t
-  V-nat  : ∀ {t} → NatValue t  → Value t
-  V-lam  : ∀ {t} → LamValue t  → Value t
+  V-nat  : ∀ {t} → NatValue  t → Value t
+  V-lam  : ∀ {t} → LamValue  t → Value t
 
 
 infix 9 _[_:=_]
@@ -53,7 +53,9 @@ _[_:=_] : Term → Id → Term → Term
 `true             [ y := V ] = `true
 `false            [ y := V ] = `false
 `zero             [ y := V ] = `zero
-(`if c th el)     [ y := V ] = `if (c [ y := V ]) (th [ y := V ]) (el [ y := V ])
+(`if c th el)     [ y := V ] = `if (c [ y := V ])
+                                   (th [ y := V ])
+                                   (el [ y := V ])
 (`zero? n)        [ y := V ] = `zero? (n [ y := V ])
 (`suc n)          [ y := V ] = `suc (n [ y := V ])
 (func · arg)      [ y := V ] = (func [ y := V ]) · (arg [ y := V ])
@@ -103,6 +105,7 @@ data _—→*_ : Term → Term → Set where
 infix  1 begin_
 infixr 2 _—→⟨_⟩_
 infix  3 _∎
+
 begin_ : ∀ {t t′} → t —→* t′ → t —→* t′
 begin steps = steps
 
@@ -127,3 +130,28 @@ data _⦂_∈_ : Id → Type → Context → Set where
   there : ∀ {x y : Id} {A B : Type} {Γ : Context} →
           x ≢ y → x ⦂ A ∈ Γ →
           x ⦂ A ∈ (Γ , y ⦂ B)
+
+
+infix 4 _⊢_⦂_
+data _⊢_⦂_ : Context → Term → Type → Set where
+  ⊢true  : ∀ {Γ} → Γ ⊢ `true ⦂ Bool
+  ⊢false : ∀ {Γ} → Γ ⊢ `false ⦂ Bool
+  ⊢if    : ∀ {Γ c th el A} →
+           Γ ⊢ c ⦂ Bool → Γ ⊢ th ⦂ A → Γ ⊢ el ⦂ A →
+           Γ ⊢ `if c th el ⦂ A
+  ⊢zero  : ∀ {Γ} → Γ ⊢ `zero ⦂ Nat
+  ⊢suc   : ∀ {Γ n} →
+           Γ ⊢ n ⦂ Nat →
+           Γ ⊢ `suc n ⦂ Nat
+  ⊢zero? : ∀ {Γ n} →
+           Γ ⊢ n ⦂ Nat →
+           Γ ⊢ `zero? n ⦂ Bool
+  ⊢lam   : ∀ {Γ x T b B} →
+           Γ , x ⦂ T ⊢ b ⦂ B →
+           Γ ⊢ (`λ x ⦂ T ⇒ b) ⦂ (T ⇒ B)
+  ⊢app   : ∀ {Γ f a A B} →
+           Γ ⊢ f ⦂ (A ⇒ B) → Γ ⊢ a ⦂ A →
+           Γ ⊢ (f · a) ⦂ B
+  ⊢var   : ∀ {Γ x T} →
+           x ⦂ T ∈ Γ →
+           Γ ⊢ ` x ⦂ T
