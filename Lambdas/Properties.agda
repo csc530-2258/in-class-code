@@ -2,8 +2,19 @@ module Lambdas.Properties where
 
 open import Lambdas.Language
 
-open import Data.Product using (_×_)
-open import Relation.Nullary using (¬_)
+-- Benjamin Pierce: Types and Programming Languages
+-- Benjamin Pierce: Software Foundations
+-- Philip Wadler et al:
+--        Programming Language Foundations in Agda
+
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Empty using (⊥)
+open import Data.Product using (_×_; _,_)
+open import Data.String using (_≟_)
+open import Relation.Nullary
+  using (¬_; yes; no; contradiction)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl)
 
 Normal : Term → Set
 Normal t = ∀ {t′} → ¬ (t —→ t′)
@@ -63,11 +74,69 @@ progress (⊢app f-arrow a-A) with progress f-arrow
 ...   | LV | done a-val  = step (subst a-val)
 
 
--- TODO: Finish this
+infix 3 _⊆_
+_⊆_ : Context → Context → Set
+Γ ⊆ Δ = ∀ {x A} → x ⦂ A ∈ Γ → x ⦂ A ∈ Δ
+
+extend : ∀ {Γ Δ y B} → Γ ⊆ Δ → Γ , y ⦂ B ⊆ Δ , y ⦂ B
+extend Γ⊆Δ here            = here
+extend Γ⊆Δ (there neq x∈Γ) = there neq (Γ⊆Δ x∈Γ)
+
+weaken : ∀ {Γ Δ t A} → Γ ⊆ Δ → Γ ⊢ t ⦂ A → Δ ⊢ t ⦂ A
+weaken Γ⊆Δ ⊢true = ⊢true
+weaken Γ⊆Δ ⊢false = ⊢false
+weaken Γ⊆Δ ⊢zero = ⊢zero
+weaken Γ⊆Δ (⊢if c-bool th-A el-A) =
+  ⊢if (weaken Γ⊆Δ c-bool) (weaken Γ⊆Δ th-A) (weaken Γ⊆Δ el-A)
+weaken Γ⊆Δ (⊢suc n-nat) = ⊢suc (weaken Γ⊆Δ n-nat)
+weaken Γ⊆Δ (⊢zero? n-nat) = ⊢zero? (weaken Γ⊆Δ n-nat)
+weaken Γ⊆Δ (⊢app f-arrow a-B) =
+  ⊢app (weaken Γ⊆Δ f-arrow) (weaken Γ⊆Δ a-B)
+weaken Γ⊆Δ (⊢lam b-B) = ⊢lam (weaken (extend Γ⊆Δ) b-B)
+weaken Γ⊆Δ (⊢var x∈Γ) = ⊢var (Γ⊆Δ x∈Γ)
+
+
+∅⊆Γ : ∀ {Γ} → ∅ ⊆ Γ
+∅⊆Γ ()
+
+drop : ∀ {Γ y A B} → Γ , y ⦂ A , y ⦂ B ⊆ Γ , y ⦂ B
+drop here                      = here
+drop (there neq here)          = contradiction refl neq
+drop (there neq (there _ x∈Γ)) = there neq x∈Γ
+
+swap : ∀ {Γ y z A B} →
+       y ≢ z → Γ , z ⦂ B , y ⦂ A ⊆ Γ , y ⦂ A , z ⦂ B
+swap y≢z here                        = there y≢z here
+swap y≢z (there x≢y here)            = here
+swap y≢z (there x≢y (there x≢z x∈Γ)) =
+  there x≢z (there x≢y x∈Γ)
+
+
 sub-pres : ∀ {Γ b y V A T} →
            Γ , y ⦂ A ⊢ b ⦂ T → ∅ ⊢ V ⦂ A →
            Γ ⊢ b [ y := V ] ⦂ T
-sub-pres = {!   !}
+sub-pres ⊢true  V-A = ⊢true
+sub-pres ⊢false V-A = ⊢false
+sub-pres ⊢zero  V-A = ⊢zero
+sub-pres (⊢if c-bool th-T el-T) V-A =
+  ⊢if (sub-pres c-bool V-A)
+      (sub-pres th-T V-A)
+      (sub-pres el-T V-A)
+sub-pres (⊢suc n-nat) V-A = ⊢suc (sub-pres n-nat V-A)
+sub-pres (⊢zero? n-nat) V-A = ⊢zero? (sub-pres n-nat V-A)
+sub-pres (⊢app f-arrow a-C) V-A =
+  ⊢app (sub-pres f-arrow V-A) (sub-pres a-C V-A)
+sub-pres {y = y} (⊢var {x = x} here) V-A with x ≟ y
+... | yes x-eq-y  = weaken ∅⊆Γ V-A
+... | no  x-neq-y = contradiction refl x-neq-y
+sub-pres {y = y} (⊢var {x = x} (there neq x∈Γ)) V-A
+  with x ≟ y
+... | yes x-eq-y  = contradiction x-eq-y neq
+... | no  x-neq-y = ⊢var x∈Γ
+sub-pres {y = y} (⊢lam {x = x} b-B) V-A with x ≟ y
+... | yes refl    = ⊢lam (weaken drop b-B)
+... | no  x-neq-y =
+  ⊢lam (sub-pres (weaken (swap x-neq-y) b-B) V-A)
 
 preserve : ∀ {t t′ T} → ∅ ⊢ t ⦂ T → t —→ t′ → ∅ ⊢ t′ ⦂ T
 preserve (⊢if c-bool th-T el-T) if-true = th-T
@@ -86,3 +155,36 @@ preserve (⊢app f-arrow a-A) (reduce-arg f-val a-step) =
   ⊢app f-arrow (preserve a-A a-step)
 preserve (⊢app (⊢lam b-T) a-A) (subst a-val) =
   sub-pres b-T a-A
+
+unstuck : ∀ {t T} → ∅ ⊢ t ⦂ T → ¬ (Stuck t)
+unstuck t-T (t-normal , t-not-value) with progress t-T
+... | done t-value = t-not-value t-value
+... | step t-step  = t-normal t-step
+
+
+preserves : ∀ {t t′ T} → ∅ ⊢ t ⦂ T → t —→* t′ → ∅ ⊢ t′ ⦂ T
+preserves t-T no-steps = t-T
+preserves t-T (multi-steps fst-step rst-steps) =
+  preserves (preserve t-T fst-step) rst-steps
+
+
+wttdgs : ∀ {t t′ T} → ∅ ⊢ t ⦂ T → t —→* t′ → ¬ (Stuck t′)
+wttdgs t-T t-steps = unstuck (preserves t-T t-steps)
+
+
+data Finished (t : Term) : Set where
+  ran       : Value t → Finished t
+  timed-out : Finished t
+
+
+data Steps (t : Term) : Set where
+  steps : ∀ {t′ : Term} → t —→* t′ → Finished t′ → Steps t
+
+
+eval : ∀ {t T} → ℕ → ∅ ⊢ t ⦂ T → Steps t
+eval zero    _   = steps no-steps timed-out
+eval (suc n) t-T with progress t-T
+... | done t-value = steps no-steps (ran t-value)
+... | step t-step  with eval n (preserve t-T t-step)
+...   | steps rst-steps fin =
+  steps (multi-steps t-step rst-steps) fin
